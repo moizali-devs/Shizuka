@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "382810899464",
+    "project_id": "shizuka-94a02",
+    "storage_bucket": "shizuka-94a02.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:382810899464:android:f552cf93b7f6bebab33dbd",
+        "android_client_info": {
+          "package_name": "com.moiz.shizuka.shizuka"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxzaK1NhRqVFq1E83oskMIusdbBjI7zLs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

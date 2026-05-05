@@ -10,7 +10,11 @@
       "Bash(cp:*)",
       "mcp__claude_ai_Excalidraw__read_me",
       "mcp__claude_ai_Excalidraw__create_view",
-      "mcp__claude_ai_Excalidraw__export_to_excalidraw"
+      "mcp__claude_ai_Excalidraw__export_to_excalidraw",
+      "Bash(winget install:*)",
+      "Bash(gh auth:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(powershell.exe:*)"
     ]
   }
 }
