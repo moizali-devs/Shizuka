@@ -10,11 +10,12 @@ void main() async {
   runApp(const ProviderScope(child: ShizukaApp()));
 }
 
-class ShizukaApp extends StatelessWidget {
+class ShizukaApp extends ConsumerWidget {
   const ShizukaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'Shizuka',
       debugShowCheckedModeBanner: false,
@@ -22,7 +23,7 @@ class ShizukaApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6B7FD4)),
         useMaterial3: true,
       ),
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }
