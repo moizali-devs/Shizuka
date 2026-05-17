@@ -1,7 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shizuka/core/design_tokens.dart';
 import 'package:shizuka/core/providers.dart';
+import 'package:shizuka/shared/widgets/widgets.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -11,7 +14,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -27,7 +29,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _errorMessage = 'Please enter a valid email address.');
+      return;
+    }
+    if (password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your password.');
+      return;
+    }
+    if (_isRegisterMode && password.length < 6) {
+      setState(() => _errorMessage = 'Password must be at least 6 characters.');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -38,13 +54,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final auth = ref.read(authRepositoryProvider);
       if (_isRegisterMode) {
         await auth.register(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+          email: email,
+          password: password,
         );
       } else {
         await auth.login(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+          email: email,
+          password: password,
         );
       }
       // Router redirect handles navigation on auth state change
@@ -80,105 +96,152 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Shizuka',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: colorScheme.primary,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isRegisterMode ? 'Create your account' : 'Welcome back',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 40),
-                  Form(
-                    key: _formKey,
+      body: WashiBackground(
+        showSakura: true,
+        child: Stack(
+          children: [
+            // Corner sakura watermarks
+            Positioned(
+              top: -20,
+              right: -30,
+              child: Opacity(
+                opacity: 0.13,
+                child: Transform.rotate(
+                  angle: -0.2,
+                  child: const SakuraIcon(size: 180),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 60,
+              left: -40,
+              child: Opacity(
+                opacity: 0.08,
+                child: Transform.rotate(
+                  angle: 0.3,
+                  child: const SakuraIcon(size: 150),
+                ),
+              ),
+            ),
+            // Main content
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28, vertical: 40),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.email_outlined),
+                        // Brand mark
+                        const Center(child: SakuraIcon(size: 64)),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Shizuka',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w700,
+                            color: ShizukaTokens.textPrimary,
                           ),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Please enter your email';
-                            }
-                            if (!v.contains('@')) {
-                              return 'Please enter a valid email';
-                            }
-                            return null;
-                          },
+                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
-                        TextFormField(
+                        const SizedBox(height: 6),
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '静か',
+                                style: GoogleFonts.notoSerifJp(
+                                  fontSize: 13,
+                                  color: ShizukaTokens.textSecondary,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: ' • Study together, anywhere',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: ShizukaTokens.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 40),
+
+                        // Email field
+                        ShizukaTextInput(
+                          label: 'Email',
+                          controller: _emailController,
+                          prefixIcon: const Icon(
+                            Icons.mail_outline,
+                            color: ShizukaTokens.textSecondary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Password field
+                        ShizukaTextInput(
+                          label: 'Password',
                           controller: _passwordController,
                           obscureText: true,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _submit(),
-                          decoration: const InputDecoration(
-                            labelText: 'Password',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.lock_outlined),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: ShizukaTokens.textSecondary,
+                            size: 20,
                           ),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) {
-                              return 'Please enter your password';
-                            }
-                            if (_isRegisterMode && v.length < 6) {
-                              return 'Password must be at least 6 characters';
-                            }
-                            return null;
-                          },
                         ),
+
+                        // Forgot password (sign-in mode only)
+                        if (!_isRegisterMode) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: GestureDetector(
+                              onTap: () {},
+                              child: const Text(
+                                'Forgot password?',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: ShizukaTokens.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        // Error banner
                         if (_errorMessage != null) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
+                                horizontal: 14, vertical: 11),
                             decoration: BoxDecoration(
-                              color: colorScheme.errorContainer,
-                              borderRadius: BorderRadius.circular(8),
+                              color: ShizukaTokens.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(
+                                  ShizukaTokens.radiusSm),
+                              border: Border.all(
+                                color:
+                                    ShizukaTokens.error.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.error_outline,
-                                  size: 18,
-                                  color: colorScheme.onErrorContainer,
+                                  size: 16,
+                                  color: ShizukaTokens.error,
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     _errorMessage!,
-                                    style: TextStyle(
-                                      color: colorScheme.onErrorContainer,
+                                    style: const TextStyle(
                                       fontSize: 13,
+                                      color: ShizukaTokens.error,
                                     ),
                                   ),
                                 ),
@@ -187,8 +250,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: _isLoading ? null : _submit,
+
+                        // Primary CTA
+                        ShizukaPrimaryButton(
+                          onPressed: _submit,
+                          isFullWidth: true,
+                          isDisabled: _isLoading,
                           child: _isLoading
                               ? const SizedBox(
                                   height: 20,
@@ -198,30 +265,97 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : Text(_isRegisterMode ? 'Create Account' : 'Sign In'),
+                              : Text(
+                                  _isRegisterMode ? 'Create Account' : 'Sign In',
+                                ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // "or" divider
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: ShizukaTokens.textSecondary
+                                    .withValues(alpha: 0.3),
+                                thickness: 0.5,
+                              ),
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'or',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: ShizukaTokens.textSecondary
+                                      .withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: ShizukaTokens.textSecondary
+                                    .withValues(alpha: 0.3),
+                                thickness: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: _isLoading
+
+                        // Register / sign-in toggle
+                        GestureDetector(
+                          onTap: _isLoading
                               ? null
                               : () => setState(() {
                                     _isRegisterMode = !_isRegisterMode;
                                     _errorMessage = null;
-                                    _formKey.currentState?.reset();
                                   }),
-                          child: Text(
+                          child: Text.rich(
                             _isRegisterMode
-                                ? 'Already have an account? Sign in'
-                                : "Don't have an account? Register",
+                                ? const TextSpan(
+                                    text: 'Already have an account? ',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: ShizukaTokens.textSecondary,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Sign in',
+                                        style: TextStyle(
+                                          color: ShizukaTokens.primaryDark,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const TextSpan(
+                                    text: "Don't have an account? ",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: ShizukaTokens.textSecondary,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Register',
+                                        style: TextStyle(
+                                          color: ShizukaTokens.primaryDark,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

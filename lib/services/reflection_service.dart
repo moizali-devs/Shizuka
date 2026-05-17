@@ -13,12 +13,14 @@ class ReflectionResult {
     required this.durationMinutes,
     required this.memberCount,
     required this.blockCount,
+    this.intentionText,
   });
 
   final String reflectionText;
   final int durationMinutes;
   final int memberCount;
   final int blockCount;
+  final String? intentionText;
 }
 
 class ReflectionService {
@@ -101,6 +103,7 @@ class ReflectionService {
       durationMinutes: durationMinutes,
       memberCount: memberCount,
       blockCount: blockCount,
+      intentionText: intentionText,
     );
   }
 

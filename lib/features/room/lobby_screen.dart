@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shizuka/core/design_tokens.dart';
 import 'package:shizuka/core/providers.dart';
 import 'package:shizuka/repositories/room_repository.dart';
+import 'package:shizuka/shared/widgets/widgets.dart';
 
 class LobbyScreen extends ConsumerStatefulWidget {
   const LobbyScreen({super.key, required this.roomId});
@@ -101,100 +103,162 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     final currentUser = ref.read(authStateChangesProvider).valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lobby'),
-        leading: BackButton(onPressed: () => context.go('/home')),
-      ),
-      body: roomAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (room) {
-          if (room == null) {
-            return const Center(child: Text('Room not found.'));
-          }
-          if (room.status == 'ended') {
-            return const Center(
-              child: _EndedBanner(),
-            );
-          }
+      body: WashiBackground(
+        showSakura: true,
+        child: SafeArea(
+          child: roomAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: ShizukaTokens.primaryDark),
+            ),
+            error: (e, _) => Center(
+              child: Text('Error: $e',
+                  style: const TextStyle(color: ShizukaTokens.error)),
+            ),
+            data: (room) {
+              if (room == null) {
+                return const Center(child: Text('Room not found.'));
+              }
+              if (room.status == 'ended') {
+                return _EndedBanner(onHome: () => context.go('/home'));
+              }
 
-          final isHost = currentUser?.uid == room.hostUid;
-          final intentions = intentionsAsync.valueOrNull ?? {};
-          final myUid = currentUser?.uid ?? '';
-          final myIntentionSubmitted =
-              _intentionSubmitted || intentions.containsKey(myUid);
-          final hostSubmitted = intentions.containsKey(room.hostUid);
-          final members = room.members.values.toList()
-            ..sort((a, b) {
-              // Host first
-              if (a.uid == room.hostUid) return -1;
-              if (b.uid == room.hostUid) return 1;
-              return a.character.compareTo(b.character);
-            });
+              final isHost = currentUser?.uid == room.hostUid;
+              final intentions = intentionsAsync.valueOrNull ?? {};
+              final myUid = currentUser?.uid ?? '';
+              final myIntentionSubmitted =
+                  _intentionSubmitted || intentions.containsKey(myUid);
+              final hostSubmitted = intentions.containsKey(room.hostUid);
+              final members = room.members.values.toList()
+                ..sort((a, b) {
+                  if (a.uid == room.hostUid) return -1;
+                  if (b.uid == room.hostUid) return 1;
+                  return a.character.compareTo(b.character);
+                });
 
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _RoomCodeCard(roomId: widget.roomId, onCopy: _copyCode),
-                const SizedBox(height: 24),
-                _IntentionInput(
-                  controller: _intentionController,
-                  submitted: myIntentionSubmitted,
-                  submitting: _submitting,
-                  onSubmit: _submitIntention,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Members (${members.length})',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: members.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, i) => _MemberTile(
-                      member: members[i],
-                      hostUid: room.hostUid,
-                      submitted: intentions.containsKey(members[i].uid),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Custom header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => context.go('/home'),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: ShizukaTokens.card,
+                              borderRadius: BorderRadius.circular(
+                                  ShizukaTokens.radiusSm),
+                              boxShadow: ShizukaTokens.cardShadow,
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back_ios_new,
+                              size: 16,
+                              color: ShizukaTokens.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Text(
+                          'Lobby',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: ShizukaTokens.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                if (isHost) ...[
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: hostSubmitted && !_starting
-                          ? _startSession
-                          : null,
-                      icon: _starting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.play_arrow),
-                      label: Text(
-                        hostSubmitted
-                            ? 'Start Session'
-                            : 'Submit your intention to start',
+                  // Scrollable body + pinned host button
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Room code card
+                          _RoomCodeCard(
+                            roomId: widget.roomId,
+                            onCopy: _copyCode,
+                          ),
+                          const SizedBox(height: 16),
+                          const BrushDivider(),
+                          const SizedBox(height: 16),
+                          // Intention section
+                          _IntentionSection(
+                            controller: _intentionController,
+                            submitted: myIntentionSubmitted,
+                            submitting: _submitting,
+                            onSubmit: _submitIntention,
+                          ),
+                          const SizedBox(height: 20),
+                          // Members header
+                          Text(
+                            'Members (${members.length})',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: ShizukaTokens.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          // Members list
+                          Expanded(
+                            child: ListView.separated(
+                              itemCount: members.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (_, i) => _MemberRow(
+                                member: members[i],
+                                hostUid: room.hostUid,
+                                submitted:
+                                    intentions.containsKey(members[i].uid),
+                              ),
+                            ),
+                          ),
+                          // Host start button
+                          if (isHost) ...[
+                            const SizedBox(height: 16),
+                            ShizukaPrimaryButton(
+                              onPressed: _startSession,
+                              isFullWidth: true,
+                              isDisabled: !hostSubmitted || _starting,
+                              child: _starting
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      hostSubmitted
+                                          ? 'Start Session'
+                                          : 'Submit your intention to start',
+                                    ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ],
                       ),
                     ),
                   ),
                 ],
-              ],
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
+// ─── Room code card ───────────────────────────────────────────────────────────
 
 class _RoomCodeCard extends StatelessWidget {
   const _RoomCodeCard({required this.roomId, required this.onCopy});
@@ -204,55 +268,92 @@ class _RoomCodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Room Code',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(ShizukaTokens.radiusMd),
+        boxShadow: ShizukaTokens.cardShadow,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(ShizukaTokens.radiusMd),
+        child: ColoredBox(
+          color: ShizukaTokens.card,
+          child: Stack(
+            children: [
+              // Watermark
+              Positioned(
+                right: -12,
+                top: -12,
+                child: Opacity(
+                  opacity: 0.10,
+                  child: SakuraIcon(
+                    size: 80,
+                    color: ShizukaTokens.primary,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    roomId,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 6,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  Text(
-                    'Share with others to join',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            IconButton(
-              onPressed: onCopy,
-              icon: const Icon(Icons.copy_outlined),
-              tooltip: 'Copy code',
-            ),
-          ],
+              // Content
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 8, 14),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Room Code',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.1,
+                              color: ShizukaTokens.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            roomId,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 6,
+                              color: ShizukaTokens.primaryDark,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Share with others to join',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: ShizukaTokens.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: onCopy,
+                      icon: const Icon(
+                        Icons.copy_outlined,
+                        color: ShizukaTokens.primaryDark,
+                        size: 20,
+                      ),
+                      tooltip: 'Copy code',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _IntentionInput extends StatelessWidget {
-  const _IntentionInput({
+// ─── Intention section ────────────────────────────────────────────────────────
+
+class _IntentionSection extends StatelessWidget {
+  const _IntentionSection({
     required this.controller,
     required this.submitted,
     required this.submitting,
@@ -266,62 +367,59 @@ class _IntentionInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     if (submitted) {
-      return Card(
-        color: theme.colorScheme.secondaryContainer,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Icon(
-                Icons.check_circle_outline,
-                color: theme.colorScheme.onSecondaryContainer,
+      return Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF8FAF8F).withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(
+              Icons.check_circle_outline,
+              size: 16,
+              color: Color(0xFF4F6B4F),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Intention set',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF4F6B4F),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  controller.text.isEmpty
-                      ? 'Intention submitted'
-                      : controller.text,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSecondaryContainer,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: TextField(
+          child: ShizukaTextInput(
+            label: 'What will you focus on today?',
             controller: controller,
-            maxLines: 1,
             maxLength: 120,
-            textInputAction: TextInputAction.done,
             onSubmitted: (_) => onSubmit(),
-            decoration: const InputDecoration(
-              labelText: 'Your intention for this session',
-              hintText: 'e.g. Finish chapter 3 of my book',
-              border: OutlineInputBorder(),
-              counterText: '',
-            ),
           ),
         ),
-        const SizedBox(width: 8),
-        FilledButton(
-          onPressed: submitting ? null : onSubmit,
+        const SizedBox(width: 10),
+        ShizukaSecondaryButton(
+          onPressed: onSubmit,
+          isDisabled: submitting,
           child: submitting
               ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: ShizukaTokens.primaryDark,
+                  ),
                 )
               : const Text('Set'),
         ),
@@ -330,8 +428,10 @@ class _IntentionInput extends StatelessWidget {
   }
 }
 
-class _MemberTile extends StatelessWidget {
-  const _MemberTile({
+// ─── Member row ───────────────────────────────────────────────────────────────
+
+class _MemberRow extends StatelessWidget {
+  const _MemberRow({
     required this.member,
     required this.hostUid,
     required this.submitted,
@@ -343,36 +443,77 @@ class _MemberTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isHost = member.uid == hostUid;
+    final initial =
+        member.character.isNotEmpty ? member.character[0].toUpperCase() : '?';
 
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: theme.colorScheme.secondaryContainer,
-        child: Text(
-          member.character[0],
-          style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: ShizukaTokens.card,
+        borderRadius: BorderRadius.circular(ShizukaTokens.radiusMd),
+        boxShadow: ShizukaTokens.cardShadow,
       ),
-      title: Text(member.character),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
+          // Blush avatar
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: ShizukaTokens.primary.withValues(alpha: 0.35),
+            ),
+            child: Center(
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: ShizukaTokens.textPrimary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Name
+          Expanded(
+            child: Text(
+              member.character,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: ShizukaTokens.textPrimary,
+              ),
+            ),
+          ),
+          // Checkmark
           if (submitted)
-            Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 20)
+            const Icon(Icons.check_circle, color: ShizukaTokens.matcha, size: 20)
           else
-            Icon(Icons.radio_button_unchecked,
-                color: theme.colorScheme.onSurfaceVariant, size: 20),
+            Icon(
+              Icons.radio_button_unchecked,
+              color: ShizukaTokens.textSecondary.withValues(alpha: 0.5),
+              size: 20,
+            ),
+          // Host pill
           if (isHost) ...[
             const SizedBox(width: 8),
-            Chip(
-              label: const Text('Host'),
-              labelStyle: TextStyle(
-                fontSize: 11,
-                color: theme.colorScheme.onPrimaryContainer,
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: ShizukaTokens.primaryDark.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
               ),
-              backgroundColor: theme.colorScheme.primaryContainer,
-              padding: EdgeInsets.zero,
+              child: const Text(
+                'Host',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: ShizukaTokens.primaryDark,
+                ),
+              ),
             ),
           ],
         ],
@@ -381,34 +522,48 @@ class _MemberTile extends StatelessWidget {
   }
 }
 
+// ─── Ended banner ─────────────────────────────────────────────────────────────
+
 class _EndedBanner extends StatelessWidget {
-  const _EndedBanner();
+  const _EndedBanner({required this.onHome});
+
+  final VoidCallback onHome;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.meeting_room_outlined,
-            size: 64,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'This room has ended.',
-            style: theme.textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: () => context.go('/home'),
-            child: const Text('Back to Home'),
-          ),
-        ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const EnsoCircle(size: 96),
+            const SizedBox(height: 20),
+            const Text(
+              'This room has ended.',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: ShizukaTokens.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'The host has left the session.',
+              style: TextStyle(
+                fontSize: 13,
+                color: ShizukaTokens.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            ShizukaPrimaryButton(
+              onPressed: onHome,
+              child: const Text('Back to Home'),
+            ),
+          ],
+        ),
       ),
     );
   }

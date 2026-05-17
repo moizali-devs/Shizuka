@@ -21,7 +21,13 @@
       "Bash(flutter devices:*)",
       "Bash(flutter build:*)",
       "Bash(flutter analyze:*)",
-      "Bash(flutter test:*)"
+      "Bash(flutter test:*)",
+      "Read(//d//**)",
+      "Read(//e//**)",
+      "Read(//f//**)",
+      "Read(//d/Projects/**)",
+      "Bash(ls:*)",
+      "Bash(python3:*)"
     ]
   }
 }

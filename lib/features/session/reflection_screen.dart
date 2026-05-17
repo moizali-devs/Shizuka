@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:shizuka/core/design_tokens.dart';
 import 'package:shizuka/core/providers.dart';
 import 'package:shizuka/services/reflection_service.dart';
+import 'package:shizuka/shared/widgets/widgets.dart';
 
 class ReflectionScreen extends ConsumerStatefulWidget {
   const ReflectionScreen({super.key, required this.roomId});
@@ -24,9 +28,7 @@ class _ReflectionScreenState extends ConsumerState<ReflectionScreen> {
 
   Future<ReflectionResult> _generate() async {
     final user = ref.read(authStateChangesProvider).valueOrNull;
-    // Wait for room data if not yet loaded.
-    final room = await ref
-        .read(roomProvider(widget.roomId).future);
+    final room = await ref.read(roomProvider(widget.roomId).future);
 
     if (user == null || room == null) {
       throw Exception('Session data unavailable.');
@@ -43,24 +45,28 @@ class _ReflectionScreenState extends ConsumerState<ReflectionScreen> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        body: SafeArea(
-          child: FutureBuilder<ReflectionResult>(
-            future: _future,
-            builder: (context, snap) {
-              if (snap.connectionState != ConnectionState.done) {
-                return const _LoadingView();
-              }
-              if (snap.hasError) {
-                return _ErrorView(
-                  error: snap.error.toString(),
-                  onSkip: () => context.go('/home'),
+        backgroundColor: ShizukaTokens.background,
+        body: WashiBackground(
+          showSakura: true,
+          child: SafeArea(
+            child: FutureBuilder<ReflectionResult>(
+              future: _future,
+              builder: (context, snap) {
+                if (snap.connectionState != ConnectionState.done) {
+                  return const _LoadingView();
+                }
+                if (snap.hasError) {
+                  return _ErrorView(
+                    error: snap.error.toString(),
+                    onSkip: () => context.go('/home'),
+                  );
+                }
+                return _ResultView(
+                  result: snap.data!,
+                  onDone: () => context.go('/home'),
                 );
-              }
-              return _ResultView(
-                result: snap.data!,
-                onDone: () => context.go('/home'),
-              );
-            },
+              },
+            ),
           ),
         ),
       ),
@@ -75,17 +81,17 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(),
+          const CircularProgressIndicator(color: ShizukaTokens.primaryDark),
           const SizedBox(height: 24),
           Text(
             'Generating your reflection…',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: GoogleFonts.notoSerifJp(
+              fontSize: 15,
+              color: ShizukaTokens.textSecondary,
             ),
           ),
         ],
@@ -104,35 +110,40 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_outlined,
-                size: 56, color: theme.colorScheme.onSurfaceVariant),
+            const Icon(Icons.cloud_off_outlined,
+                size: 56, color: ShizukaTokens.textSecondary),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Could not generate reflection',
-              style: theme.textTheme.titleMedium,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: ShizukaTokens.textPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               error.replaceFirst('Exception: ', ''),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: const TextStyle(
+                fontSize: 13,
+                color: ShizukaTokens.textSecondary,
               ),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 32),
-            FilledButton(
+            ShizukaPrimaryButton(
               onPressed: onSkip,
-              child: const Text('Go Home'),
+              isFullWidth: true,
+              child: const Text('Back to Home'),
             ),
           ],
         ),
@@ -143,142 +154,179 @@ class _ErrorView extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 
-class _ResultView extends StatelessWidget {
+class _ResultView extends ConsumerWidget {
   const _ResultView({required this.result, required this.onDone});
 
   final ReflectionResult result;
   final VoidCallback onDone;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final streak = profile?.streak ?? 0;
+    final timeLabel = DateFormat('HH:mm').format(DateTime.now());
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 8),
-          Text(
-            'Session Complete',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          // Back-arrow header
+          Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              color: ShizukaTokens.textSecondary,
+              onPressed: onDone,
             ),
           ),
+
+          const SizedBox(height: 8),
+
+          // Title
+          const Text(
+            'Session Complete ✨',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: ShizukaTokens.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 8),
+
+          // Subtitle
+          const Text(
+            'Here\'s your AI reflection',
+            style: TextStyle(
+              fontSize: 13,
+              color: ShizukaTokens.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
           const SizedBox(height: 32),
 
-          // Session summary card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
+          // Journal-entry card
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFFCF9), Color(0xFFFBF6EE)],
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: ShizukaTokens.cardShadow,
+            ),
+            child: IntrinsicHeight(
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _SummaryItem(
-                    icon: Icons.timer_outlined,
-                    value: '${result.durationMinutes} min',
-                    label: 'Total time',
+                  // Left accent bar
+                  Container(
+                    width: 4,
+                    decoration: const BoxDecoration(
+                      color: ShizukaTokens.primary,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(18),
+                        bottomLeft: Radius.circular(18),
+                      ),
+                    ),
                   ),
-                  _SummaryItem(
-                    icon: Icons.local_fire_department_outlined,
-                    value: '${result.blockCount}',
-                    label: 'Blocks',
-                  ),
-                  _SummaryItem(
-                    icon: Icons.group_outlined,
-                    value: '${result.memberCount}',
-                    label: 'Members',
+                  // Card content
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'REFLECTION · $timeLabel',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.1,
+                              color: ShizukaTokens.primaryDark,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            result.reflectionText,
+                            style: GoogleFonts.notoSerifJp(
+                              fontSize: 15,
+                              height: 1.75,
+                              color: ShizukaTokens.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          const SizedBox(height: 32),
-
-          Text(
-            'Your Reflection',
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-
-          // Reflection text
-          Card(
-            color: theme.colorScheme.surfaceContainerHighest,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                result.reflectionText,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  height: 1.6,
-                  color: theme.colorScheme.onSurface,
+          // User's intention
+          if (result.intentionText != null) ...[
+            const SizedBox(height: 20),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: RichText(
+                text: TextSpan(
+                  style: const TextStyle(fontSize: 12),
+                  children: [
+                    const TextSpan(
+                      text: 'Your intention · ',
+                      style: TextStyle(color: ShizukaTokens.textSecondary),
+                    ),
+                    TextSpan(
+                      text: result.intentionText,
+                      style: const TextStyle(
+                        color: ShizukaTokens.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
+          ],
 
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.lock_outline,
-                  size: 14, color: theme.colorScheme.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Text(
-                'Visible only to you',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+          const SizedBox(height: 28),
+
+          // Streak badge
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0x2E8FAF8F),
+              border: Border.all(color: const Color(0x528FAF8F)),
+              borderRadius: BorderRadius.circular(ShizukaTokens.radiusPill),
+            ),
+            child: Text(
+              '🔥 +1 Streak · now $streak days',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4F6B4F),
               ),
-            ],
+            ),
           ),
 
           const SizedBox(height: 40),
 
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: onDone,
-              child: const Text('Done'),
-            ),
+          // Back to Home button
+          ShizukaPrimaryButton(
+            onPressed: onDone,
+            isFullWidth: true,
+            child: const Text('Back to Home'),
           ),
+
+          const SizedBox(height: 24),
         ],
       ),
-    );
-  }
-}
-
-class _SummaryItem extends StatelessWidget {
-  const _SummaryItem({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: theme.colorScheme.primary),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
     );
   }
 }

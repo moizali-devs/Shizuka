@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:shizuka/core/design_tokens.dart';
 import 'package:shizuka/core/providers.dart';
 import 'package:shizuka/repositories/profile_repository.dart';
+import 'package:shizuka/shared/widgets/widgets.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -12,242 +15,356 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider);
     final sessionsAsync = ref.watch(sessionHistoryProvider);
-    final theme = Theme.of(context);
+
+    final profile = profileAsync.valueOrNull;
+    final sessions = sessionsAsync.valueOrNull ?? [];
+
+    final initial = profile?.email.isNotEmpty == true
+        ? profile!.email[0].toUpperCase()
+        : '?';
+    final email = profile?.email ?? '';
+    final streak = profile?.streak ?? 0;
+    final sessionCount = sessions.length;
+    final totalMinutes =
+        sessions.fold<int>(0, (sum, s) => sum + s.durationMinutes);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        leading: BackButton(onPressed: () => context.go('/home')),
-      ),
-      body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (profile) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _ProfileHeader(profile: profile),
-            const SizedBox(height: 24),
-            Text('Reflection History', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 12),
-            sessionsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Text('Error: $e'),
-              data: (sessions) => sessions.isEmpty
-                  ? _EmptyHistory()
-                  : Column(
-                      children: sessions
-                          .map((s) => _SessionEntry(session: s))
-                          .toList(),
+      backgroundColor: ShizukaTokens.background,
+      body: WashiBackground(
+        showSakura: true,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Back-arrow header
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      color: ShizukaTokens.textSecondary,
+                      onPressed: () => context.go('/home'),
                     ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.profile});
-
-  final UserProfile? profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: Text(
-                profile?.email.isNotEmpty == true
-                    ? profile!.email[0].toUpperCase()
-                    : '?',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: theme.colorScheme.onPrimaryContainer,
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    profile?.email ?? '—',
-                    style: theme.textTheme.titleMedium,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Text('🔥', style: TextStyle(fontSize: 16)),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${profile?.streak ?? 0} day streak',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                  children: [
+                    // Avatar
+                    Center(
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFF5D5D7), ShizukaTokens.primary],
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            initial,
+                            style: GoogleFonts.mPlusRounded1c(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              color: ShizukaTokens.primaryDark,
+                            ),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+                    ),
 
-// ---------------------------------------------------------------------------
+                    const SizedBox(height: 12),
 
-class _EmptyHistory extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Center(
-        child: Text(
-          'No sessions yet.\nComplete a focus session to see your reflections here.',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}
+                    // Email
+                    Center(
+                      child: Text(
+                        email,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: ShizukaTokens.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
 
-// ---------------------------------------------------------------------------
+                    const SizedBox(height: 28),
 
-class _SessionEntry extends StatelessWidget {
-  const _SessionEntry({required this.session});
+                    // 3 stat cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Sessions',
+                            value: '$sessionCount',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Streak',
+                            value: '$streak',
+                            suffix: 'days',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _StatCard(
+                            label: 'Minutes',
+                            value: '$totalMinutes',
+                          ),
+                        ),
+                      ],
+                    ),
 
-  final SessionSummary session;
+                    const SizedBox(height: 24),
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dateStr =
-        DateFormat('MMM d, yyyy  •  h:mm a').format(session.date);
-    final hasReflection = session.reflectionText != null &&
-        session.reflectionText!.isNotEmpty;
+                    // Brush divider
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: BrushDivider(),
+                    ),
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        tilePadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
-          child: Icon(
-            Icons.self_improvement,
-            color: theme.colorScheme.onPrimaryContainer,
-            size: 20,
-          ),
-        ),
-        title: Text(dateStr, style: theme.textTheme.bodyMedium),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: _SummaryChips(session: session),
-        ),
-        // Show a one-line preview when collapsed
-        trailing: hasReflection
-            ? const Icon(Icons.expand_more)
-            : const SizedBox.shrink(),
-        children: [
-          if (hasReflection) ...[
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.lock_outline,
-                    size: 13,
-                    color: theme.colorScheme.onSurfaceVariant),
-                const SizedBox(width: 5),
-                Text(
-                  'Private reflection',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                    const SizedBox(height: 20),
+
+                    // Recent sessions section
+                    const Text(
+                      'Recent Sessions',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: ShizukaTokens.textPrimary,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    sessionsAsync.when(
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: CircularProgressIndicator(
+                            color: ShizukaTokens.primaryDark,
+                          ),
+                        ),
+                      ),
+                      error: (e, _) => Text(
+                        'Error: $e',
+                        style: const TextStyle(color: ShizukaTokens.error),
+                      ),
+                      data: (list) {
+                        if (list.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 32),
+                            child: Center(
+                              child: Text(
+                                'No sessions yet.',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: ShizukaTokens.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        }
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: list.length,
+                          separatorBuilder: (_, i) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (_, i) =>
+                              _SessionTile(session: list[i]),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Sign out
+                    Center(
+                      child: TextButton(
+                        onPressed: () async {
+                          await ref
+                              .read(authRepositoryProvider)
+                              .signOut();
+                          if (context.mounted) context.go('/');
+                        },
+                        child: const Text(
+                          'Sign Out',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: ShizukaTokens.error,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Stat card ────────────────────────────────────────────────────────────────
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.label,
+    required this.value,
+    this.suffix,
+  });
+
+  final String label;
+  final String value;
+  final String? suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF9),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: ShizukaTokens.cardShadow,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.notoSerifJp(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: ShizukaTokens.textPrimary,
+              height: 1.1,
             ),
-            const SizedBox(height: 8),
+          ),
+          if (suffix != null) ...[
+            const SizedBox(height: 1),
             Text(
-              session.reflectionText!,
-              style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
-            ),
-          ] else ...[
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            Text(
-              'No reflection recorded for this session.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
+              suffix!,
+              style: const TextStyle(
+                fontSize: 11,
+                color: ShizukaTokens.textSecondary,
               ),
             ),
           ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: ShizukaTokens.textSecondary,
+              letterSpacing: 0.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
   }
 }
 
-class _SummaryChips extends StatelessWidget {
-  const _SummaryChips({required this.session});
+// ─── Session tile ─────────────────────────────────────────────────────────────
+
+class _SessionTile extends StatelessWidget {
+  const _SessionTile({required this.session});
 
   final SessionSummary session;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final style = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
+    final dateStr = DateFormat('MMM d, yyyy').format(session.date);
+    final duration = session.durationMinutes;
+    final members = session.memberCount;
 
-    return Wrap(
-      spacing: 12,
-      children: [
-        Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.timer_outlined,
-              size: 13, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 3),
-          Text('${session.durationMinutes} min', style: style),
-        ]),
-        if (session.blockCount > 0)
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.local_fire_department_outlined,
-                size: 13, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(width: 3),
-            Text(
-                '${session.blockCount} ${session.blockCount == 1 ? 'block' : 'blocks'}',
-                style: style),
-          ]),
-        Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.group_outlined,
-              size: 13, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 3),
-          Text(
-              '${session.memberCount} ${session.memberCount == 1 ? 'member' : 'members'}',
-              style: style),
-        ]),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        color: ShizukaTokens.card,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: ShizukaTokens.cardShadow,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          // Matcha gradient circle
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFB8D4B8), ShizukaTokens.matcha],
+              ),
+            ),
+            child: const Icon(
+              Icons.timer_outlined,
+              size: 20,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Focus Session',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: ShizukaTokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  dateStr,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: ShizukaTokens.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$duration min',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: ShizukaTokens.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$members ${members == 1 ? 'member' : 'members'}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: ShizukaTokens.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
