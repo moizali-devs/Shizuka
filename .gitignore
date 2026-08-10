@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Claude Code local settings (machine-specific, not for version control)
+.claude/settings.local.json
+
+# Internal notes / QA docs not meant for the public repo
+issues.docx
