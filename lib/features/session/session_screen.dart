@@ -611,7 +611,7 @@ class _IntentionsListState extends ConsumerState<_IntentionsList> {
                       ),
                       Expanded(
                         child: Text(
-                          intention?.text ?? '—',
+                          intention?.text ?? '-',
                           style: TextStyle(
                             fontSize: 13,
                             color: intention != null

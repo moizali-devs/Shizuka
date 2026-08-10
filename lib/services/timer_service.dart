@@ -64,7 +64,7 @@ class TimerState {
 }
 
 // ---------------------------------------------------------------------------
-// State machine helpers (static — easily unit-testable)
+// State machine helpers (static, easily unit-testable)
 // ---------------------------------------------------------------------------
 
 /// Returns the next [TimerPhase] given the current phase and block number.
@@ -162,7 +162,7 @@ class TimerService {
   /// Resumes a paused phase. Adjusts startedAt so remaining time is preserved.
   Future<void> resume(String roomId, TimerState current) {
     if (!current.isPaused || current.pausedAtMs == null) return Future.value();
-    // Elapsed before pause (ms). Uses client time for adjustedStartedAt —
+    // Elapsed before pause (ms). Uses client time for adjustedStartedAt;
     // tiny drift is acceptable.
     final elapsedMs = current.pausedAtMs! - current.startedAtMs;
     final adjustedStartedAt =

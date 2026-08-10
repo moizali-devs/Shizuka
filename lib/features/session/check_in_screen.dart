@@ -123,7 +123,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
 
     final moodLabel = _kMoodLabels[_selectedMood! - 1];
     final note = _textController.text.trim();
-    final text = note.isNotEmpty ? '$moodLabel — $note' : moodLabel;
+    final text = note.isNotEmpty ? '$moodLabel: $note' : moodLabel;
 
     final user = ref.read(authStateChangesProvider).valueOrNull;
     final timerState =

@@ -59,7 +59,7 @@ final intentionsProvider =
   return ref.watch(intentionRepositoryProvider).watchIntentions(roomId);
 });
 
-/// Monitors RTDB `.info/connected` — emits `true` when online, `false` when
+/// Monitors RTDB `.info/connected`, emits `true` when online, `false` when
 /// the device has lost its Firebase Realtime Database connection.
 final connectionStateProvider = StreamProvider<bool>((ref) {
   return FirebaseDatabase.instance

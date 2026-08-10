@@ -55,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Splash handles its own navigation
       if (loc == '/splash') return null;
 
-      // Still determining auth state — go to splash
+      // Still determining auth state, go to splash
       if (notifier.isLoading) return '/splash';
 
       final isLoggedIn = notifier.currentUser != null;

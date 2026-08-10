@@ -1,4 +1,4 @@
-# Shizuka — Product Requirements Document
+# Shizuka - Product Requirements Document
 
 **Version:** 1.0
 **Status:** needs-triage
@@ -12,7 +12,7 @@
 
 University students frequently struggle to study consistently, especially when working alone. Isolation leads to distraction, and most productivity tools respond to this with aggressive notifications, competitive leaderboards, or anxiety-inducing countdown timers. These mechanics punish failure rather than encourage presence.
 
-Students who study with friends — even remotely — are more consistent. But there is no tool built specifically for this: one that supports a shared, structured study session without adding noise, competition, or social pressure. The gap is a calm, multiplayer Pomodoro experience where friends can be present together without being in the same room.
+Students who study with friends - even remotely - are more consistent. But there is no tool built specifically for this: one that supports a shared, structured study session without adding noise, competition, or social pressure. The gap is a calm, multiplayer Pomodoro experience where friends can be present together without being in the same room.
 
 ---
 
@@ -20,7 +20,7 @@ Students who study with friends — even remotely — are more consistent. But t
 
 Shizuka is a cross-platform mobile application that transforms solo study into a shared, calm, and structured experience. It combines the Pomodoro technique with real-time multiplayer focus rooms, allowing up to three friends to study together remotely.
 
-Each session consists of two 45-minute focus blocks, each followed by a short break, ending with a longer break and a private AI-generated reflection. Users are held accountable through visibility — every member can see what others are working on — without any competitive or punitive mechanics.
+Each session consists of two 45-minute focus blocks, each followed by a short break, ending with a longer break and a private AI-generated reflection. Users are held accountable through visibility - every member can see what others are working on - without any competitive or punitive mechanics.
 
 The name Shizuka means quiet, calm, and steady. The product is built around presence, not pressure.
 
@@ -100,12 +100,12 @@ The name Shizuka means quiet, calm, and steady. The product is built around pres
 44. As a user, I want the reflection to be calm and non-judgmental in tone, so that it encourages rather than criticises.
 45. As a user, I want my reflection to be visible only to me, so that honest check-ins are not discouraged by the fear of being judged.
 46. As a user, I want my reflection to be stored in my profile history, so that I can revisit it after the session ends.
-47. As a user, I want the session summary — total time, blocks completed, members present — to be displayed alongside my reflection, so that I have a full picture of the session.
+47. As a user, I want the session summary - total time, blocks completed, members present - to be displayed alongside my reflection, so that I have a full picture of the session.
 
 ### Navigation & Screens
 
 48. As a user, I want a splash screen that auto-navigates based on my auth state, so that I am taken directly to the right screen on launch.
-49. As a user, I want clear navigation between all 11 screens — Splash, Login, Home, Create Room, Join Room, Lobby, Session, Check-In, Break, Reflection, Profile — so that the app flow is never confusing.
+49. As a user, I want clear navigation between all 11 screens - Splash, Login, Home, Create Room, Join Room, Lobby, Session, Check-In, Break, Reflection, Profile - so that the app flow is never confusing.
 50. As a user, I want the back button to behave predictably throughout the session flow, so that I do not accidentally exit a live session.
 
 ---
@@ -114,27 +114,27 @@ The name Shizuka means quiet, calm, and steady. The product is built around pres
 
 ### Module Architecture
 
-The application is structured around five deep modules and three shallow repositories, all wired together via Riverpod providers. No custom backend server is used — the Flutter client communicates directly with Firebase services and the OpenAI API.
+The application is structured around five deep modules and three shallow repositories, all wired together via Riverpod providers. No custom backend server is used - the Flutter client communicates directly with Firebase services and the OpenAI API.
 
 **Deep Modules (complex logic, simple interface):**
 
-- **TimerService** — Owns the complete Pomodoro state machine: `idle → focus → check-in → short-break → focus → check-in → long-break → reflection`. Writes timer state to Firebase Realtime Database (host only). All clients subscribe to the Realtime DB node and receive updates in under 200ms. Exposes a single stream of `TimerState` and action methods guarded by host identity. This is the most complex module in the app.
+- **TimerService** - Owns the complete Pomodoro state machine: `idle → focus → check-in → short-break → focus → check-in → long-break → reflection`. Writes timer state to Firebase Realtime Database (host only). All clients subscribe to the Realtime DB node and receive updates in under 200ms. Exposes a single stream of `TimerState` and action methods guarded by host identity. This is the most complex module in the app.
 
-- **StreakService** — Owns streak read and update logic. Computes the number of days missed between `lastActiveDate` and today, decrements streak by that amount, and floors at zero. Exposes `getStreak` and `updateStreak`. Pure logic with no side effects beyond a single Firestore write.
+- **StreakService** - Owns streak read and update logic. Computes the number of days missed between `lastActiveDate` and today, decrements streak by that amount, and floors at zero. Exposes `getStreak` and `updateStreak`. Pure logic with no side effects beyond a single Firestore write.
 
-- **ReflectionService** — Fetches the user's intentions and check-ins for the completed session, constructs a prompt, calls the OpenAI chat completions endpoint, and writes the result to the user's Firestore reflection history. Exposes a single `generateReflection(userId, sessionId)` method. The API key is held client-side (acceptable for a lab project).
+- **ReflectionService** - Fetches the user's intentions and check-ins for the completed session, constructs a prompt, calls the OpenAI chat completions endpoint, and writes the result to the user's Firestore reflection history. Exposes a single `generateReflection(userId, sessionId)` method. The API key is held client-side (acceptable for a lab project).
 
-- **RoomRepository** — Manages the full room lifecycle: generates a 6-character alphanumeric room code, writes the room document to Firestore, handles member join via code lookup, assigns characters, and updates room status. On host disconnect, sets room status to `ended` so all clients navigate away.
+- **RoomRepository** - Manages the full room lifecycle: generates a 6-character alphanumeric room code, writes the room document to Firestore, handles member join via code lookup, assigns characters, and updates room status. On host disconnect, sets room status to `ended` so all clients navigate away.
 
-- **AuthRepository** — Wraps Firebase Auth `createUserWithEmailAndPassword` and `signInWithEmailAndPassword`. On successful registration, writes the user profile document to Firestore `/users/{uid}`. Exposes an `authStateChanges` stream consumed by the app router to drive navigation.
+- **AuthRepository** - Wraps Firebase Auth `createUserWithEmailAndPassword` and `signInWithEmailAndPassword`. On successful registration, writes the user profile document to Firestore `/users/{uid}`. Exposes an `authStateChanges` stream consumed by the app router to drive navigation.
 
 **Shallow Repositories (simple CRUD, thin interface):**
 
-- **IntentionRepository** — Writes and streams intentions for a given room and block from Firestore `/rooms/{roomId}/intentions/{uid}`.
+- **IntentionRepository** - Writes and streams intentions for a given room and block from Firestore `/rooms/{roomId}/intentions/{uid}`.
 
-- **CheckInRepository** — Writes and streams check-ins from Firestore `/rooms/{roomId}/checkins/{uid}/{block}`.
+- **CheckInRepository** - Writes and streams check-ins from Firestore `/rooms/{roomId}/checkins/{uid}/{block}`.
 
-- **ProfileRepository** — Reads user profile and session history from Firestore `/users/{uid}`.
+- **ProfileRepository** - Reads user profile and session history from Firestore `/users/{uid}`.
 
 ### State Management
 
@@ -143,14 +143,14 @@ Riverpod is used throughout. Each deep module is exposed as a `Provider` or `Asy
 ### Firebase Data Structure
 
 **Firestore:**
-- `/users/{uid}` — `{name, email, streak, lastActiveDate, createdAt}`
-- `/rooms/{roomId}` — `{code, host, members[], status, characters{uid: charId}, createdAt}`
-- `/rooms/{roomId}/intentions/{uid}` — `{text, block, submittedAt}`
-- `/rooms/{roomId}/checkins/{uid}/{block}` — `{text, submittedAt}`
-- `/users/{uid}/reflections/{sessionId}` — `{text, generatedAt, intention, checkins[], sessionId}`
+- `/users/{uid}` - `{name, email, streak, lastActiveDate, createdAt}`
+- `/rooms/{roomId}` - `{code, host, members[], status, characters{uid: charId}, createdAt}`
+- `/rooms/{roomId}/intentions/{uid}` - `{text, block, submittedAt}`
+- `/rooms/{roomId}/checkins/{uid}/{block}` - `{text, submittedAt}`
+- `/users/{uid}/reflections/{sessionId}` - `{text, generatedAt, intention, checkins[], sessionId}`
 
 **Realtime Database:**
-- `/rooms/{roomId}/timer` — `{state, phase, blockNumber, startedAt, pausedAt}`
+- `/rooms/{roomId}/timer` - `{state, phase, blockNumber, startedAt, pausedAt}`
 
 ### Timer State Machine
 
@@ -166,7 +166,7 @@ Valid states and transitions:
 
 ### Room Code Generation
 
-Room codes are 6-character strings drawn from the set `[A-Z0-9]`. Generated client-side by the host at room creation time. Collision checked against Firestore before writing — regenerate on collision.
+Room codes are 6-character strings drawn from the set `[A-Z0-9]`. Generated client-side by the host at room creation time. Collision checked against Firestore before writing - regenerate on collision.
 
 ### Connectivity
 
@@ -186,17 +186,17 @@ A single POST to `/v1/chat/completions` is made per user at session end. The pro
 
 ### What makes a good test
 
-A good test verifies observable external behaviour — what a module returns or what state it produces — not how it achieves it internally. Tests should not assert on private methods, internal data structures, or implementation-specific sequences of calls. A test should remain valid after a refactor that does not change external behaviour.
+A good test verifies observable external behaviour - what a module returns or what state it produces - not how it achieves it internally. Tests should not assert on private methods, internal data structures, or implementation-specific sequences of calls. A test should remain valid after a refactor that does not change external behaviour.
 
 ### Modules to test
 
-**TimerService — high priority**
+**TimerService - high priority**
 The state machine transitions are pure logic that can be tested independently of Firebase. Tests should verify that: valid transitions produce the correct next state, invalid transitions are rejected, phase progression (block 1 → check-in → break → block 2 → long break → reflection) is correct, and the block number increments correctly. These tests should use a fake/stub Realtime Database writer so no network calls are made.
 
-**StreakService — high priority**
+**StreakService - high priority**
 The streak decrement logic is a pure function of two dates and a current streak value. Tests should verify: same-day session does not change streak, one missed day decrements by one, multiple missed days decrement by the number of days missed, streak never goes below zero, and streak increments by one after a completed session when no days were missed.
 
-**RoomRepository (code generation) — medium priority**
+**RoomRepository (code generation) - medium priority**
 The 6-character code generator should be tested to verify it only produces characters from the valid set and always produces exactly 6 characters.
 
 ### Modules not tested in v1
@@ -209,19 +209,19 @@ IntentionRepository, CheckInRepository, ProfileRepository, and ReflectionService
 
 The following are explicitly excluded from this version:
 
-- **Forgot password / password reset** — not included in v1 auth flow
-- **Google sign-in** — email/password only in v1
-- **Hard room member limit enforcement** — the 3-member design is soft; no Firebase rule blocks a 4th member
-- **Host transfer** — if the host leaves, the session ends; host role does not migrate
-- **Offline mode** — the app requires connectivity; no action queuing or offline state reconciliation
-- **Music queue** — lo-fi playback is a future feature
-- **Analytics dashboard** — session pattern visualisations are a future feature
-- **Public rooms** — all rooms are invite-only via code in v1
-- **Character customisation** — characters are auto-assigned from a fixed set; no unlocking or skins
-- **Wearable support** — Apple Watch and Wear OS are future features
-- **Web landing page** — the public download page is out of scope for the Flutter build
-- **Email verification** — not enforced in v1
-- **Push notifications** — no remote notifications in v1
+- **Forgot password / password reset** - not included in v1 auth flow
+- **Google sign-in** - email/password only in v1
+- **Hard room member limit enforcement** - the 3-member design is soft; no Firebase rule blocks a 4th member
+- **Host transfer** - if the host leaves, the session ends; host role does not migrate
+- **Offline mode** - the app requires connectivity; no action queuing or offline state reconciliation
+- **Music queue** - lo-fi playback is a future feature
+- **Analytics dashboard** - session pattern visualisations are a future feature
+- **Public rooms** - all rooms are invite-only via code in v1
+- **Character customisation** - characters are auto-assigned from a fixed set; no unlocking or skins
+- **Wearable support** - Apple Watch and Wear OS are future features
+- **Web landing page** - the public download page is out of scope for the Flutter build
+- **Email verification** - not enforced in v1
+- **Push notifications** - no remote notifications in v1
 
 ---
 
@@ -229,7 +229,7 @@ The following are explicitly excluded from this version:
 
 - The breathing animation for the timer is the centrepiece UI element. It should be implemented as a looping scale animation on a circle, with speed and opacity modulated by the current timer phase. The actual elapsed time is derived from `startedAt` in the Realtime DB, not from a local ticker, so all clients stay in sync even after backgrounding the app.
 - The word "Shizuka" means quiet and calm in Japanese. Every design and interaction decision should reinforce this feeling. When in doubt, do less, not more.
-- Firebase must be set up from scratch — no project has been created yet. Firebase setup (project creation, Android/iOS app registration, `google-services.json` / `GoogleService-Info.plist` download, and Firestore/Realtime DB rule configuration) is a prerequisite before any code that touches Firebase can run.
+- Firebase must be set up from scratch - no project has been created yet. Firebase setup (project creation, Android/iOS app registration, `google-services.json` / `GoogleService-Info.plist` download, and Firestore/Realtime DB rule configuration) is a prerequisite before any code that touches Firebase can run.
 - The OpenAI API key is stored client-side. This is acceptable for a university lab project but would need to be moved to a backend proxy before any public release.
 - LinkedIn posts will be written at the end of each development phase in a personal, storytelling tone under Moiz Ali's name.
 - Microsoft Planner board structure will be defined and populated separately.

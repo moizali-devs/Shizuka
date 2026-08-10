@@ -34,7 +34,7 @@ class CheckInRepository {
       _firestore.collection('rooms').doc(roomId).collection('checkins');
 
   /// Writes (or overwrites) a check-in response for [uid] on [blockNumber].
-  /// Document ID: `{blockNumber}_{uid}` — unique per member per block.
+  /// Document ID: `{blockNumber}_{uid}`, unique per member per block.
   Future<void> submitCheckIn({
     required String roomId,
     required String uid,

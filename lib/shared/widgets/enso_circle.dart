@@ -38,7 +38,7 @@ class _EnsoPainter extends CustomPainter {
     final cy = size.height / 2;
     final radius = (size.width - strokeWidth) / 2;
 
-    const startAngle = math.pi * 0.6; // ~108° — lower-left
+    const startAngle = math.pi * 0.6; // ~108°, lower-left
     const sweepAngle = math.pi * 1.7; // ~306° sweep, open gap at top
 
     final rect = Rect.fromCircle(center: Offset(cx, cy), radius: radius);

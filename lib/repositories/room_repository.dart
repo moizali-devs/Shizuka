@@ -178,7 +178,7 @@ class RoomRepository {
       }
 
       if (room.members.containsKey(guestUid)) {
-        // Already in room — idempotent re-join
+        // Already in room, idempotent re-join
         return room;
       }
 

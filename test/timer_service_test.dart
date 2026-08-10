@@ -69,7 +69,7 @@ void main() {
   // isValidTimerTransition
   // ---------------------------------------------------------------------------
 
-  group('isValidTimerTransition — valid transitions', () {
+  group('isValidTimerTransition - valid transitions', () {
     test('idle → focus is valid', () {
       expect(isValidTimerTransition(TimerPhase.idle, TimerPhase.focus), isTrue);
     });
@@ -95,7 +95,7 @@ void main() {
     });
   });
 
-  group('isValidTimerTransition — invalid transitions', () {
+  group('isValidTimerTransition - invalid transitions', () {
     test('idle → checkIn is invalid', () {
       expect(isValidTimerTransition(TimerPhase.idle, TimerPhase.checkIn), isFalse);
     });

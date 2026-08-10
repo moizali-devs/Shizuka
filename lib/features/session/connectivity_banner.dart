@@ -68,7 +68,7 @@ class _OfflineBanner extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'No internet connection — reconnecting…',
+                    'No internet connection, reconnecting…',
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
                     ),

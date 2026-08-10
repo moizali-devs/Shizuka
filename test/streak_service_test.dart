@@ -32,7 +32,7 @@ void main() {
   });
 
   group('StreakService.applyDecrement', () {
-    test('floor at zero — large gap on small streak', () {
+    test('floor at zero, large gap on small streak', () {
       final last = DateTime(2024, 6, 1);
       final today = DateTime(2024, 6, 10);
       // 8 missed days, streak 3 → 0
